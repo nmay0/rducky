@@ -12,8 +12,8 @@ import (
 
 	"github.com/chzyer/readline"
 
-	"qq/internal/llm"
-	"qq/internal/tmux"
+	"rducky/internal/llm"
+	"rducky/internal/tmux"
 )
 
 const (
@@ -24,7 +24,7 @@ const (
 	red   = "\x1b[31m"
 )
 
-const systemPromptTemplate = `You are qq, a quick-question assistant running in a tmux sidebar next to the user's terminal. The user opened you mid-work to get a fast answer, then get back to what they were doing.
+const systemPromptTemplate = `You are rducky, a quick-question assistant running in a tmux sidebar next to the user's terminal. The user opened you mid-work to get a fast answer, then get back to what they were doing.
 
 Environment:
 - OS: %s
@@ -65,7 +65,7 @@ func Run(target, model string, maxTokens, contextLines int) error {
 	}
 	defer rl.Close()
 
-	fmt.Printf("%sqq · %s · reading pane %s%s\n", dim, model, target, reset)
+	fmt.Printf("%srducky · %s · reading pane %s%s\n", dim, model, target, reset)
 	fmt.Printf("%sAsk about what's on your screen · Ctrl+D closes · /refresh re-reads the pane%s\n\n", dim, reset)
 
 	for {

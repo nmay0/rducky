@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-const sidebarOption = "@qq_sidebar"
+const sidebarOption = "@rducky_sidebar"
 
 func run(args ...string) (string, error) {
 	out, err := exec.Command("tmux", args...).CombinedOutput()
@@ -21,7 +21,7 @@ func ActivePaneID() (string, error) {
 	return run("display-message", "-p", "#{pane_id}")
 }
 
-// FindSidebar returns the pane id of an existing qq sidebar in the window
+// FindSidebar returns the pane id of an existing rducky sidebar in the window
 // containing target, or "" if there is none.
 func FindSidebar(target string) (string, error) {
 	args := []string{"list-panes", "-F", "#{pane_id} #{" + sidebarOption + "}"}

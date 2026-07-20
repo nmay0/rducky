@@ -8,19 +8,19 @@ import (
 	"path/filepath"
 	"strings"
 
-	"qq/internal/chat"
-	"qq/internal/config"
-	"qq/internal/tmux"
+	"rducky/internal/chat"
+	"rducky/internal/config"
+	"rducky/internal/tmux"
 )
 
-const usage = `qq — hotkey AI sidebar for your terminal (tmux)
+const usage = `rducky — hotkey AI sidebar for your terminal (tmux)
 
 Usage:
-  qq [toggle] [-t pane]   open the sidebar next to the pane (or close it if open)
-  qq chat --target pane   run the chat REPL (what the sidebar pane runs)
-  qq install [--write]    show the tmux.conf keybinding (--write appends it)
+  rducky [toggle] [-t pane]   open the sidebar next to the pane (or close it if open)
+  rducky chat --target pane   run the chat REPL (what the sidebar pane runs)
+  rducky install [--write]    show the tmux.conf keybinding (--write appends it)
 
-Config: ~/.config/qq/config.yaml (model, max_tokens, context_lines, split, size)
+Config: ~/.config/rducky/config.yaml (model, max_tokens, context_lines, split, size)
 Auth:   ANTHROPIC_API_KEY, ANTHROPIC_AUTH_TOKEN, or an ` + "`ant auth login`" + ` profile
 `
 
@@ -45,7 +45,7 @@ func main() {
 		if err := cmdChat(args); err != nil {
 			// The sidebar pane dies the instant we exit, so hold it open
 			// long enough for the error to be read.
-			fmt.Fprintf(os.Stderr, "\x1b[31mqq: %v\x1b[0m\n", err)
+			fmt.Fprintf(os.Stderr, "\x1b[31mrducky: %v\x1b[0m\n", err)
 			fmt.Fprint(os.Stderr, "press Enter to close ")
 			bufio.NewReader(os.Stdin).ReadString('\n')
 			os.Exit(1)
@@ -57,7 +57,7 @@ func main() {
 	case "help", "-h", "--help":
 		fmt.Print(usage)
 	default:
-		fmt.Fprintf(os.Stderr, "qq: unknown command %q\n\n%s", cmd, usage)
+		fmt.Fprintf(os.Stderr, "rducky: unknown command %q\n\n%s", cmd, usage)
 		os.Exit(1)
 	}
 }
@@ -96,7 +96,7 @@ func cmdChat(args []string) error {
 	fs.Parse(args)
 
 	if os.Getenv("TMUX") == "" {
-		return fmt.Errorf("chat must run inside tmux (use `qq toggle`)")
+		return fmt.Errorf("chat must run inside tmux (use `rducky toggle`)")
 	}
 	pane := *target
 	if pane == "" {
@@ -120,14 +120,14 @@ func cmdInstall(args []string) error {
 		return err
 	}
 	snippet := fmt.Sprintf(`
-# qq — AI sidebar (prefix + a). Added by 'qq install'.
+# rducky — AI sidebar (prefix + a). Added by 'rducky install'.
 bind-key a run-shell "%s toggle -t '#{pane_id}'"
 `, bin)
 
 	if !*write {
 		fmt.Println("Add this to ~/.tmux.conf, then run: tmux source-file ~/.tmux.conf")
 		fmt.Println(snippet)
-		fmt.Println("Or run `qq install --write` to append it for you.")
+		fmt.Println("Or run `rducky install --write` to append it for you.")
 		fmt.Println(`Prefer no prefix key? Use: bind-key -n M-a run-shell "..." (Alt+a)`)
 		return nil
 	}
@@ -138,8 +138,8 @@ bind-key a run-shell "%s toggle -t '#{pane_id}'"
 	}
 	confPath := filepath.Join(home, ".tmux.conf")
 	existing, _ := os.ReadFile(confPath)
-	if strings.Contains(string(existing), "qq — AI sidebar") {
-		fmt.Println("qq keybinding already present in", confPath)
+	if strings.Contains(string(existing), "rducky — AI sidebar") {
+		fmt.Println("rducky keybinding already present in", confPath)
 		return nil
 	}
 	f, err := os.OpenFile(confPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
@@ -156,6 +156,6 @@ bind-key a run-shell "%s toggle -t '#{pane_id}'"
 }
 
 func fatal(err error) {
-	fmt.Fprintln(os.Stderr, "qq:", err)
+	fmt.Fprintln(os.Stderr, "rducky:", err)
 	os.Exit(1)
 }

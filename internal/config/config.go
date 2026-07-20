@@ -25,7 +25,7 @@ func defaults() Config {
 	}
 }
 
-// Load returns defaults overlaid with ~/.config/qq/config.yaml if it exists.
+// Load returns defaults overlaid with ~/.config/rducky/config.yaml if it exists.
 // A missing or unreadable config file is not an error.
 func Load() Config {
 	cfg := defaults()
@@ -39,7 +39,7 @@ func Load() Config {
 		dir = filepath.Join(home, ".config")
 	}
 
-	data, err := os.ReadFile(filepath.Join(dir, "qq", "config.yaml"))
+	data, err := os.ReadFile(filepath.Join(dir, "rducky", "config.yaml"))
 	if err != nil {
 		return cfg
 	}

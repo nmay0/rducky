@@ -76,7 +76,7 @@ func Explain(err error) string {
 		case 401:
 			return "authentication failed — set ANTHROPIC_API_KEY or run `ant auth login`"
 		case 404:
-			return "unknown model — check `model` in ~/.config/qq/config.yaml"
+			return "unknown model — check `model` in ~/.config/rducky/config.yaml"
 		case 429:
 			return "rate limited — wait a moment and try again"
 		case 500, 529:
