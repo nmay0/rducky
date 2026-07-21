@@ -12,6 +12,7 @@ import (
 
 	"github.com/chzyer/readline"
 
+	"rducky/internal/config"
 	"rducky/internal/llm"
 	"rducky/internal/tmux"
 )
@@ -44,8 +45,8 @@ Guidelines:
 </terminal>`
 
 // Run starts the sidebar REPL against the given tmux pane.
-func Run(target, model string, maxTokens, contextLines int) error {
-	capture, err := tmux.Capture(target, contextLines)
+func Run(target string, cfg config.Config) error {
+	capture, err := tmux.Capture(target, cfg.ContextLines)
 	if err != nil {
 		return fmt.Errorf("cannot read pane %s: %w", target, err)
 	}
@@ -53,8 +54,19 @@ func Run(target, model string, maxTokens, contextLines int) error {
 
 	system := fmt.Sprintf(systemPromptTemplate,
 		osDescription(), os.Getenv("SHELL"), cwd, command, capture)
-	session := llm.NewSession(model, maxTokens, system)
+	session, err := llm.NewSession(llm.Options{
+		Provider:  cfg.Provider,
+		Model:     cfg.Model,
+		BaseURL:   cfg.BaseURL,
+		APIKeyEnv: cfg.APIKeyEnv,
+		MaxTokens: cfg.MaxTokens,
+		System:    system,
+	})
+	if err != nil {
+		return err
+	}
 	lastCapture := capture
+	contextLines := cfg.ContextLines
 
 	rl, err := readline.NewEx(&readline.Config{
 		Prompt:          green + "❯ " + reset,
@@ -65,7 +77,7 @@ func Run(target, model string, maxTokens, contextLines int) error {
 	}
 	defer rl.Close()
 
-	fmt.Printf("%srducky · %s · reading pane %s%s\n", dim, model, target, reset)
+	fmt.Printf("%srducky · %s/%s · reading pane %s%s\n", dim, session.Provider, session.Model, target, reset)
 	fmt.Printf("%sAsk about what's on your screen · Ctrl+D closes · /refresh re-reads the pane%s\n\n", dim, reset)
 
 	for {

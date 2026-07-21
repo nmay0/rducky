@@ -31,12 +31,19 @@ sudo mv rducky /usr/local/bin/       # anywhere on PATH works
 
 #### 2. API key
 
-`rducky` talks to the Claude API. Any one of these works:
+`rducky` talks to Anthropic by default; OpenAI, Gemini, xAI, Groq, Mistral,
+DeepSeek, OpenRouter, Ollama, and any OpenAI-compatible endpoint are also
+supported — run `rducky providers` for the full list with env keys and
+default models. For the default (Anthropic), any one of these works:
 
 ```sh
 export ANTHROPIC_API_KEY=sk-ant-...   # from console.anthropic.com → API keys
 # or: ant auth login                  # Anthropic CLI OAuth profile
 ```
+
+For another provider, set `provider:` in the config file (below) and export
+that provider's key, e.g. `OPENAI_API_KEY` or `GEMINI_API_KEY`. Ollama needs
+no key at all.
 
 Note: tmux keybindings run through the tmux server, so put the export in your
 shell profile (`~/.zshrc` / `~/.bashrc`) — the sidebar inherits the shell env.
@@ -77,11 +84,30 @@ You can also run `rducky` with no arguments inside tmux — same as the hotkey.
 `~/.config/rducky/config.yaml` — everything has a default; the file may not exist.
 
 ```yaml
-model: claude-opus-4-8   # e.g. claude-haiku-4-5 for cheaper/faster answers
+provider: anthropic      # `rducky providers` lists all of them
+model: claude-opus-4-8   # omit to use the provider's default
 max_tokens: 8192
 context_lines: 200       # scrollback lines captured above the visible screen
 split: h                 # h = right sidebar, v = bottom panel
 size: 35%
+```
+
+Examples — switch provider with two lines:
+
+```yaml
+provider: openai         # uses OPENAI_API_KEY, defaults to gpt-5.1
+```
+
+```yaml
+provider: ollama         # local, no API key
+model: qwen3:8b
+```
+
+```yaml
+provider: custom         # any OpenAI-compatible server
+base_url: http://192.168.1.20:8080/v1
+model: my-model
+api_key_env: MY_KEY_VAR  # optional — omit if the server needs no auth
 ```
 
 ## How it works
@@ -90,4 +116,6 @@ size: 35%
 `rducky chat --target <your-pane>`, marked with the `@rducky_sidebar` pane option so the
 next toggle can find and kill it. The chat captures your pane with
 `tmux capture-pane` (visible screen + `context_lines` of history), plus your OS,
-shell, cwd, and foreground command, and streams answers from the Claude API.
+shell, cwd, and foreground command, and streams answers from the configured
+provider — Anthropic through the official SDK, everyone else through the
+OpenAI-compatible chat-completions protocol.

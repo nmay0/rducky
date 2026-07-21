@@ -10,6 +10,7 @@ import (
 
 	"rducky/internal/chat"
 	"rducky/internal/config"
+	"rducky/internal/llm"
 	"rducky/internal/tmux"
 )
 
@@ -19,9 +20,11 @@ Usage:
   rducky [toggle] [-t pane]   open the sidebar next to the pane (or close it if open)
   rducky chat --target pane   run the chat REPL (what the sidebar pane runs)
   rducky install [--write]    show the tmux.conf keybinding (--write appends it)
+  rducky providers            list supported AI providers and their env keys
 
-Config: ~/.config/rducky/config.yaml (model, max_tokens, context_lines, split, size)
-Auth:   ANTHROPIC_API_KEY, ANTHROPIC_AUTH_TOKEN, or an ` + "`ant auth login`" + ` profile
+Config: ~/.config/rducky/config.yaml
+        (provider, model, base_url, api_key_env, max_tokens, context_lines, split, size)
+Auth:   export the provider's key env var (see ` + "`rducky providers`" + `); ollama needs none
 `
 
 func main() {
@@ -54,6 +57,8 @@ func main() {
 		if err := cmdInstall(args); err != nil {
 			fatal(err)
 		}
+	case "providers":
+		cmdProviders()
 	case "help", "-h", "--help":
 		fmt.Print(usage)
 	default:
@@ -106,8 +111,28 @@ func cmdChat(args []string) error {
 		}
 	}
 
-	cfg := config.Load()
-	return chat.Run(pane, cfg.Model, cfg.MaxTokens, cfg.ContextLines)
+	return chat.Run(pane, config.Load())
+}
+
+func cmdProviders() {
+	fmt.Printf("%-12s %-20s %-26s %s\n", "PROVIDER", "AUTH ENV VAR", "DEFAULT MODEL", "ENDPOINT")
+	for _, p := range llm.Table() {
+		keyEnv := p.KeyEnv
+		if keyEnv == "" {
+			keyEnv = "(none)"
+		}
+		endpoint := p.BaseURL
+		if endpoint == "" {
+			endpoint = "(official SDK)"
+		}
+		fmt.Printf("%-12s %-20s %-26s %s\n", p.Name, keyEnv, p.DefaultModel, endpoint)
+	}
+	fmt.Printf("%-12s %-20s %-26s %s\n", "custom", "(set api_key_env)", "(set model)", "(set base_url) — any OpenAI-compatible API")
+	fmt.Print(`
+Select in ~/.config/rducky/config.yaml, e.g.:
+  provider: openai
+  model: gpt-5.1        # optional — omit for the provider default
+`)
 }
 
 func cmdInstall(args []string) error {

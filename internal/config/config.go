@@ -8,7 +8,10 @@ import (
 )
 
 type Config struct {
-	Model        string `yaml:"model"`
+	Provider     string `yaml:"provider"`    // see `rducky providers`; default anthropic
+	Model        string `yaml:"model"`       // empty = the provider's default
+	BaseURL      string `yaml:"base_url"`    // endpoint override; required for provider "custom"
+	APIKeyEnv    string `yaml:"api_key_env"` // env var holding the key, if not the provider's usual one
 	MaxTokens    int    `yaml:"max_tokens"`
 	ContextLines int    `yaml:"context_lines"`
 	Split        string `yaml:"split"` // "h" = right sidebar, "v" = bottom
@@ -17,7 +20,7 @@ type Config struct {
 
 func defaults() Config {
 	return Config{
-		Model:        "claude-opus-4-8",
+		Provider:     "anthropic",
 		MaxTokens:    8192,
 		ContextLines: 200,
 		Split:        "h",
@@ -48,8 +51,17 @@ func Load() Config {
 		return cfg
 	}
 
+	if fileCfg.Provider != "" {
+		cfg.Provider = fileCfg.Provider
+	}
 	if fileCfg.Model != "" {
 		cfg.Model = fileCfg.Model
+	}
+	if fileCfg.BaseURL != "" {
+		cfg.BaseURL = fileCfg.BaseURL
+	}
+	if fileCfg.APIKeyEnv != "" {
+		cfg.APIKeyEnv = fileCfg.APIKeyEnv
 	}
 	if fileCfg.MaxTokens > 0 {
 		cfg.MaxTokens = fileCfg.MaxTokens

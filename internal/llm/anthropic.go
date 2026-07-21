@@ -2,15 +2,13 @@ package llm
 
 import (
 	"context"
-	"errors"
-	"fmt"
+	"os"
 
 	"github.com/anthropics/anthropic-sdk-go"
+	"github.com/anthropics/anthropic-sdk-go/option"
 )
 
-// Session holds one conversation with the API. History lives only in memory;
-// it dies with the sidebar.
-type Session struct {
+type anthropicSession struct {
 	client    anthropic.Client
 	model     anthropic.Model
 	maxTokens int64
@@ -18,11 +16,21 @@ type Session struct {
 	messages  []anthropic.MessageParam
 }
 
-// NewSession creates a session. Credentials resolve from ANTHROPIC_API_KEY,
-// ANTHROPIC_AUTH_TOKEN, or an `ant auth login` profile.
-func NewSession(model string, maxTokens int, systemPrompt string) *Session {
-	return &Session{
-		client:    anthropic.NewClient(),
+// newAnthropicSession creates a session. With no overrides, credentials
+// resolve from ANTHROPIC_API_KEY, ANTHROPIC_AUTH_TOKEN, or an
+// `ant auth login` profile.
+func newAnthropicSession(model string, maxTokens int, systemPrompt, baseURL, keyEnv string) *anthropicSession {
+	var opts []option.RequestOption
+	if baseURL != "" {
+		opts = append(opts, option.WithBaseURL(baseURL))
+	}
+	if keyEnv != "" {
+		if key := os.Getenv(keyEnv); key != "" {
+			opts = append(opts, option.WithAPIKey(key))
+		}
+	}
+	return &anthropicSession{
+		client:    anthropic.NewClient(opts...),
 		model:     anthropic.Model(model),
 		maxTokens: int64(maxTokens),
 		system: []anthropic.TextBlockParam{{
@@ -35,7 +43,7 @@ func NewSession(model string, maxTokens int, systemPrompt string) *Session {
 // Ask sends text as the next user turn and streams the reply through onDelta.
 // On error (including cancellation) the pending user turn is dropped so the
 // conversation history stays valid for the next question.
-func (s *Session) Ask(ctx context.Context, text string, onDelta func(string)) (stopReason string, err error) {
+func (s *anthropicSession) Ask(ctx context.Context, text string, onDelta func(string)) (stopReason string, err error) {
 	s.messages = append(s.messages, anthropic.NewUserMessage(anthropic.NewTextBlock(text)))
 
 	stream := s.client.Messages.NewStreaming(ctx, anthropic.MessageNewParams{
@@ -63,27 +71,4 @@ func (s *Session) Ask(ctx context.Context, text string, onDelta func(string)) (s
 
 	s.messages = append(s.messages, message.ToParam())
 	return string(message.StopReason), nil
-}
-
-// Explain turns API errors into a one-line human message.
-func Explain(err error) string {
-	if errors.Is(err, context.Canceled) {
-		return "canceled"
-	}
-	var apierr *anthropic.Error
-	if errors.As(err, &apierr) {
-		switch apierr.StatusCode {
-		case 401:
-			return "authentication failed — set ANTHROPIC_API_KEY or run `ant auth login`"
-		case 404:
-			return "unknown model — check `model` in ~/.config/rducky/config.yaml"
-		case 429:
-			return "rate limited — wait a moment and try again"
-		case 500, 529:
-			return "the API is having trouble — try again shortly"
-		default:
-			return fmt.Sprintf("API error (%d): %v", apierr.StatusCode, apierr)
-		}
-	}
-	return err.Error()
 }
