@@ -12,11 +12,24 @@ Works anywhere tmux does — Linux and macOS, any terminal emulator.
 ## Install
 
 ```sh
+./setup.sh
+```
+
+Builds the binary, installs it to `~/.local/bin`, prompts for your Anthropic
+API key, and wires up the tmux keybinding — all in one step. Safe to re-run;
+it skips anything already done. Prefer to do it by hand, or on a machine
+where you'd rather not run a script? See the manual steps below.
+
+### Manual setup
+
+#### 1. Build and install
+
+```sh
 go build -o rducky .                 # or: go install (puts it in ~/go/bin)
 sudo mv rducky /usr/local/bin/       # anywhere on PATH works
 ```
 
-### 1. API key
+#### 2. API key
 
 `rducky` talks to the Claude API. Any one of these works:
 
@@ -27,8 +40,10 @@ export ANTHROPIC_API_KEY=sk-ant-...   # from console.anthropic.com → API keys
 
 Note: tmux keybindings run through the tmux server, so put the export in your
 shell profile (`~/.zshrc` / `~/.bashrc`) — the sidebar inherits the shell env.
+If you already have a tmux server running, either restart it or run `tmux
+set-environment -g ANTHROPIC_API_KEY sk-ant-...` to push the key in live.
 
-### 2. tmux keybinding
+#### 3. tmux keybinding
 
 ```sh
 rducky install          # prints the snippet
