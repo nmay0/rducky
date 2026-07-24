@@ -18,11 +18,13 @@ import (
 )
 
 const (
-	reset = "\x1b[0m"
-	dim   = "\x1b[2m"
-	cyan  = "\x1b[36m"
-	green = "\x1b[1;32m"
-	red   = "\x1b[31m"
+	reset  = "\x1b[0m"
+	dim    = "\x1b[2m"
+	bold   = "\x1b[1m"
+	cyan   = "\x1b[36m"
+	green  = "\x1b[1;32m"
+	yellow = "\x1b[33m"
+	red    = "\x1b[31m"
 )
 
 const systemPromptTemplate = `You are rducky, a quick-question assistant running in a tmux sidebar next to the user's terminal. The user opened you mid-work to get a fast answer, then get back to what they were doing.
@@ -77,8 +79,10 @@ func Run(target string, cfg config.Config) error {
 	}
 	defer rl.Close()
 
-	fmt.Printf("%srducky · %s/%s · reading pane %s%s\n", dim, session.Provider, session.Model, target, reset)
-	fmt.Printf("%sAsk about what's on your screen · Ctrl+D closes · /refresh re-reads the pane%s\n\n", dim, reset)
+	fmt.Println(yellow + "🦆 " + reset + bold + "rducky" + reset +
+		dim + "  ·  " + session.Provider + "/" + session.Model + reset)
+	fmt.Println(dim + "pane " + target + " · ^D quit · /refresh · /help" + reset)
+	fmt.Println()
 
 	for {
 		line, err := rl.Readline()
@@ -151,11 +155,13 @@ func answer(session *llm.Session, message string) {
 	fmt.Println()
 }
 
-// renderer prints streamed text line-buffered, tinting fenced code blocks.
+// renderer prints streamed text line-buffered, giving it a light markdown
+// coat: cyan code, bold headings, • bullets, tidy spacing around code blocks.
 type renderer struct {
-	out     io.Writer
-	lineBuf strings.Builder
-	inCode  bool
+	out       io.Writer
+	lineBuf   strings.Builder
+	inCode    bool
+	prevBlank bool
 }
 
 func (r *renderer) delta(text string) {
@@ -170,20 +176,89 @@ func (r *renderer) delta(text string) {
 func (r *renderer) emitLine() {
 	line := strings.TrimRight(r.lineBuf.String(), "\n")
 	r.lineBuf.Reset()
+	trimmed := strings.TrimSpace(line)
+
 	switch {
-	case strings.HasPrefix(strings.TrimSpace(line), "```"):
+	case strings.HasPrefix(trimmed, "```"):
+		// Hide the fence markers — the cyan tint signals code — but keep
+		// one blank line between the block and surrounding prose.
 		r.inCode = !r.inCode
-		fmt.Fprintf(r.out, "%s%s%s\n", dim, line, reset)
+		r.blankGap()
 	case r.inCode:
 		fmt.Fprintf(r.out, "%s%s%s\n", cyan, line, reset)
+		r.prevBlank = false
+	case trimmed == "":
+		r.blankGap() // collapse runs of blank lines into one
 	default:
-		fmt.Fprintln(r.out, line)
+		fmt.Fprintln(r.out, styleLine(line))
+		r.prevBlank = false
+	}
+}
+
+// blankGap emits a single blank line, swallowing consecutive ones.
+func (r *renderer) blankGap() {
+	if !r.prevBlank {
+		fmt.Fprintln(r.out)
+		r.prevBlank = true
 	}
 }
 
 func (r *renderer) flush() {
 	if r.lineBuf.Len() > 0 {
 		r.emitLine()
+	}
+}
+
+// styleLine applies line-level markdown: headings become bold, "-"/"*"
+// bullets get a • marker, then inline spans are styled.
+func styleLine(line string) string {
+	trimmed := strings.TrimSpace(line)
+
+	// Headings (#, ##, ###…): drop the hashes, render the text bold.
+	if h := strings.TrimLeft(trimmed, "#"); h != trimmed && strings.HasPrefix(h, " ") {
+		return bold + styleInline(strings.TrimSpace(h)) + reset
+	}
+
+	// Bullets: swap a leading "- "/"* " for a • while keeping indentation.
+	indent := line[:len(line)-len(strings.TrimLeft(line, " "))]
+	body := line[len(indent):]
+	if strings.HasPrefix(body, "- ") || strings.HasPrefix(body, "* ") {
+		return indent + cyan + "•" + reset + " " + styleInline(body[2:])
+	}
+
+	return styleInline(line)
+}
+
+// styleInline tints `inline code` and bolds **spans** within a line.
+func styleInline(s string) string {
+	s = wrapPairs(s, "`", cyan)
+	s = wrapPairs(s, "**", bold)
+	return s
+}
+
+// wrapPairs styles text sitting between matched pairs of delim. It only acts
+// on an even number of delimiters, so stray markers are left untouched and no
+// color ever leaks past the end of the line.
+func wrapPairs(s, delim, style string) string {
+	if n := strings.Count(s, delim); n < 2 || n%2 != 0 {
+		return s
+	}
+	var b strings.Builder
+	open := false
+	for {
+		i := strings.Index(s, delim)
+		if i < 0 {
+			b.WriteString(s)
+			return b.String()
+		}
+		b.WriteString(s[:i])
+		if open {
+			b.WriteString(reset)
+		} else {
+			b.WriteString(style)
+		}
+		open = !open
+		s = s[i+len(delim):]
 	}
 }
 
