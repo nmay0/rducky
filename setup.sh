@@ -64,7 +64,7 @@ esac
 # --- 4. API keys -----------------------------------------------------------
 # Keyed providers (mirrors the registry in internal/llm/llm.go; ollama runs
 # locally and needs no key).
-PROVIDERS="anthropic openai gemini xai groq mistral deepseek openrouter"
+PROVIDERS="anthropic openai gemini xai groq cerebras mistral deepseek openrouter"
 
 key_env_for() {
   case "$1" in
@@ -73,6 +73,7 @@ key_env_for() {
     gemini)     echo "GEMINI_API_KEY" ;;
     xai)        echo "XAI_API_KEY" ;;
     groq)       echo "GROQ_API_KEY" ;;
+    cerebras)   echo "CEREBRAS_API_KEY" ;;
     mistral)    echo "MISTRAL_API_KEY" ;;
     deepseek)   echo "DEEPSEEK_API_KEY" ;;
     openrouter) echo "OPENROUTER_API_KEY" ;;

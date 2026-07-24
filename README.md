@@ -31,9 +31,9 @@ sudo mv rducky /usr/local/bin/       # anywhere on PATH works
 
 #### 2. API key
 
-`rducky` talks to Anthropic by default; OpenAI, Gemini, xAI, Groq, Mistral,
-DeepSeek, OpenRouter, Ollama, and any OpenAI-compatible endpoint are also
-supported — run `rducky providers` for the full list with env keys and
+`rducky` talks to Anthropic by default; OpenAI, Gemini, xAI, Groq, Cerebras,
+Mistral, DeepSeek, OpenRouter, Ollama, and any OpenAI-compatible endpoint are
+also supported — run `rducky providers` for the full list with env keys and
 default models. For the default (Anthropic), any one of these works:
 
 ```sh
